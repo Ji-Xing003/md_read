@@ -9,7 +9,7 @@
 [![App Store](https://img.shields.io/badge/App%20Store-Local%20Markdown%20Preview-blue?logo=appstore)](https://apps.apple.com/cn/app/local-markdown-preview/id6779451523)
 [![Binary size](https://img.shields.io/badge/binary-~5MB-green)](https://github.com/vorojar/md-preview/releases)
 
-> Multiple Markdown files, one lightweight window. Follow local document links, inspect counts, zoom the page, and edit with automatic save—without launching a whole IDE.
+> Multiple Markdown files, one lightweight window. A side outline, counts, zoom, and automatic saving—without letting long or image-heavy documents weigh the window down.
 
 MD Preview is a fast, local-first Markdown previewer and quick editor built with **Rust** and the system **WebView** on desktop, plus native iOS and Android shells for opening Markdown from Files, WeChat, WeCom, and system share sheets. It does not bundle Chromium, does not require Electron, and keeps all rendering assets offline. Open several local documents as tabs, return to the same active document after restart, or create a Markdown file from Finder on macOS and start typing immediately.
 
@@ -20,6 +20,9 @@ MD Preview is a fast, local-first Markdown previewer and quick editor built with
 AI coding tools now generate a lot of Markdown: `README.md`, `plan.md`, task specs, architecture notes, changelogs, KaTeX formulas, and Mermaid diagrams. Most Markdown tools are still either full writing studios or editor plugins. MD Preview is deliberately smaller:
 
 - **Open fast** - native binary, system WebView, no bundled browser runtime.
+- **Read long documents** - a side outline collects h1-h4 headings, jumps to sections, highlights the current one, and remembers its width and open state.
+- **Survive big files** - documents beyond the WebView2 single-page limit render a light first paint, then receive the full body once the WebView is ready instead of crashing at startup.
+- **Load images on demand** - local images are served from disk through a custom protocol with `loading="lazy"`; offscreen images are not requested or decoded, so a long document never pushes every image into HTML.
 - **Stay local** - Markdown, syntax highlighting, math, and diagrams render on your machine.
 - **Keep documents together** - open multiple Markdown and text files in one tabbed window and resume the session later.
 - **Navigate documentation folders** - relative and absolute links to local Markdown or text files open or activate tabs instead of leaving the preview.
@@ -35,6 +38,7 @@ Use it as a small preview-first workspace for the documents your tools generate:
 
 - Keep Claude Code / Codex / Cursor-generated plans, task notes, and READMEs open as tabs without opening a full IDE.
 - Resume the same tab order and active document after restarting the app; inactive files load from disk only when selected.
+- Use the side outline to jump around long plans and changelogs instead of scrolling the whole file.
 - Make small source edits inside MD Preview, while still getting live reload when another editor writes the file.
 - On macOS, create a new Markdown document from Finder and land directly in source edit instead of opening VS Code first.
 - Print or export the rendered preview when you need a clean PDF.
@@ -51,7 +55,7 @@ Get the latest build from [GitHub Releases](https://github.com/vorojar/md-previe
 | iOS / iPadOS | [Local Markdown Preview on the App Store](https://apps.apple.com/cn/app/local-markdown-preview/id6779451523) | Native iPhone and iPad viewer for opening Markdown from Files and the iOS share sheet. |
 | Android | `MD-Preview-Android.apk` | Native Android viewer for opening Markdown files from Files, WeChat, WeCom, and share sheets. |
 
-Android builds are published as separate mobile releases, for example [mobile-android-v1.0.7](https://github.com/vorojar/md-preview/releases/tag/mobile-android-v1.0.7). The iOS build is now available on the App Store as [Local Markdown Preview](https://apps.apple.com/cn/app/local-markdown-preview/id6779451523).
+Android builds are published as separate mobile releases, for example [mobile-android-v1.0.9](https://github.com/vorojar/md-preview/releases/tag/mobile-android-v1.0.9). The iOS build is available on the App Store as [Local Markdown Preview](https://apps.apple.com/cn/app/local-markdown-preview/id6779451523).
 
 You can also build from source:
 
@@ -96,11 +100,14 @@ On iPhone and iPad, Local Markdown Preview opens Markdown and plain-text files f
 
 | Feature | What it means |
 |---|---|
+| Side outline | Builds an h1-h4 outline from the rendered document; click to jump and scroll to highlight the current section; open by default, collapsible, resizable, and persisted. |
 | Desktop tabs | Open multiple Markdown or text documents in one window; duplicate paths activate the existing tab. |
 | Session restore | Restore tab order and the active document after restart without caching inactive document bodies. |
 | Missing files | Moved or deleted files remain as explicit missing tabs with Locate and Close actions. |
 | Finder workflow | On macOS, create Markdown from Finder and start editing it immediately in MD Preview. |
 | Reliable autosave | Source edits save after a short pause and are flushed before preview, tab switches, tab/window close, or quit; save failures keep the tab and text intact. |
+| Large documents | When the initial page exceeds the safe threshold, a light first paint appears and the full body is injected after the WebView is ready, avoiding WebView2's 2 MB `NavigateToString` cap. |
+| Images on demand | Local relative images are served from disk through a custom protocol with `loading="lazy"`; no base64 blobs, and offscreen images stay out of renderer memory. |
 | Local document links | Relative or absolute links to existing Markdown and text files open or activate a tab; invalid local targets do not replace the preview. |
 | Front matter | YAML metadata at the start of a document stays readable as metadata instead of collapsing into a heading. |
 | Live statistics | The tab bar shows non-whitespace and total character counts and updates while editing. |
@@ -119,7 +126,7 @@ On iPhone and iPad, Local Markdown Preview opens Markdown and plain-text files f
 | Diagrams | Mermaid fenced blocks render locally when the document actually uses them. |
 | GitHub Alerts | `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, and `[!CAUTION]` blockquotes render as alert callouts. |
 | Highlights | `==highlight==` renders as marked text for notes and AI-generated docs. |
-| Dark mode | Follows the system color scheme across macOS, Windows, and Linux. |
+| Appearance | Follows the system by default; macOS View → Theme can pin System, Light, or Dark. |
 | GitHub-flavored Markdown | Tables, task lists, strikethrough, heading attributes, and anchors. |
 | External links | `http`, `https`, and `mailto` links open in the system browser or mail app. |
 | Window restore | Last size and position are restored when still visible on a connected monitor. |
@@ -151,12 +158,20 @@ MD Preview uses `pulldown-cmark` for the base Markdown pass, then enhances the r
 - Offline code highlighting for 40+ languages, including Delphi/Pascal
 - Offline KaTeX math rendering with safeguards so Markdown emphasis does not break formulas
 - Offline Mermaid rendering for fenced ```` ```mermaid ```` blocks
-- Relative image paths through a per-file `<base>` URL
+- Relative image paths resolved from the current Markdown file and served from disk through a custom protocol
 - Relative and absolute links to supported local Markdown or text documents
 - Readable YAML front matter delimited by `---` or `...`
 - Print CSS that removes app controls from printed output
 
 The cold path stays small: regular Markdown renders first, while heavier enhancers such as highlight.js, KaTeX, and Mermaid are deferred until after the first visible paint or loaded only for documents that need them.
+
+## Performance and Memory
+
+- **Cold start** - highlight.js stays out of the first-paint HTML; the first frame only parses Markdown, and code coloring is applied afterward.
+- **Large documents** - when the initial page exceeds 1 MiB, a light body renders first and the full content arrives through a script once the WebView exists, avoiding WebView2's 2 MB `NavigateToString` limit.
+- **Images** - local images are no longer inlined as base64. The `mdimg` custom protocol reads them from disk on demand, every image carries `loading="lazy"`, and offscreen images are not requested or decoded. Large opaque images are resized to a 1920 px longest edge and re-encoded as JPEG only when the result is smaller.
+- **Windows resident memory** - WebView2 runs without a separate GPU process, folds GPU work into the browser process, and caps the JavaScript old-space heap at 64 MB; image-heavy documents use roughly 40 MB less resident memory.
+- **Lazy tabs** - session restore keeps tab order and the active document, while inactive document bodies stay on disk.
 
 ## How It Stays Small
 
@@ -174,6 +189,8 @@ The release profile enables size-oriented optimization, LTO, one codegen unit, s
 ## Privacy
 
 MD Preview has no accounts, no telemetry, and no analytics. Your Markdown files stay on disk. Rendering happens locally. The only network request made by the desktop app itself is the optional update check after the first paint; failed checks are ignored and never block startup. macOS updates are verified by Sparkle using the app's embedded EdDSA public key. Windows self-updates verify the SHA-256 digest returned by GitHub Releases before replacing the running exe.
+
+The local-image protocol only serves image files under the current Markdown file's directory. Parent-directory traversal, missing files, and non-image extensions are rejected and keep their original references, so nothing outside the document folder is read.
 
 ## Troubleshooting
 
@@ -198,6 +215,10 @@ If that does not help, try:
 ```bash
 WEBKIT_DISABLE_COMPOSITING_MODE=1 md-preview your-file.md
 ```
+
+**A very large or image-heavy document still fails**
+
+Update to the latest build first; the light first paint and on-demand images rely on the current release. If the app crashes, check `md-preview.log` next to the executable. If that directory is not writable, the log goes to the config directory (`%LOCALAPPDATA%\md-preview` on Windows, `~/.config/md-preview` on macOS/Linux). The log records the panic location and reason only.
 
 **Windows cannot set MD Preview as the default app automatically**
 

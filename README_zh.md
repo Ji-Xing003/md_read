@@ -9,7 +9,7 @@
 [![App Store](https://img.shields.io/badge/App%20Store-Local%20Markdown%20Preview-blue?logo=appstore)](https://apps.apple.com/cn/app/local-markdown-preview/id6779451523)
 [![Binary size](https://img.shields.io/badge/binary-~5MB-green)](https://github.com/vorojar/md-preview/releases)
 
-> 多份 Markdown，一个轻量窗口。沿本地文档链接跳转、查看统计、缩放正文并自动保存编辑，不必启动一整个 IDE。
+> 多份 Markdown，一个轻量窗口。侧边目录、统计、缩放、自动保存编辑，长文档和图片很多的文档也不会拖垮窗口。
 
 MD Preview 是用 **Rust** 和系统 **WebView** 写的本地优先 Markdown 预览与快速编辑工具，桌面端覆盖 macOS、Windows、Linux，手机端提供 iOS 和 Android 原生外壳，方便从文件管理器、微信、企业微信和系统分享面板打开 Markdown。它不打包 Chromium，不依赖 Electron，渲染资源全部离线内置。桌面端可以把多份本地文档放进同一组标签，重启后回到上次活动文档；macOS 上还能从 Finder 新建 Markdown 并立即开始编辑。
 
@@ -20,6 +20,9 @@ MD Preview 是用 **Rust** 和系统 **WebView** 写的本地优先 Markdown 预
 AI 编程工具现在会生成大量 Markdown：`README.md`、`plan.md`、任务说明、架构笔记、变更记录、KaTeX 公式和 Mermaid 图。很多 Markdown 工具仍然要么是完整写作套件，要么是编辑器插件。MD Preview 刻意保持更小：
 
 - **打开快**：原生二进制、系统 WebView，不带一份浏览器运行时。
+- **长文好读**：侧边目录汇总 h1–h4 标题，点击跳转、滚动高亮，宽度和开关状态都会记住。
+- **大文档稳**：超过 WebView2 单页限制的文档先渲染轻量首屏，WebView 就绪后再补完整正文，不再在启动时崩溃。
+- **图片按需**：本地图片通过自定义协议从磁盘读取，全部 `loading="lazy"`，屏外图片不请求、不解码，文档再长也不把整份图片塞进 HTML。
 - **本地渲染**：Markdown、代码高亮、数学公式、Mermaid 图表都在本机完成。
 - **文档放在一起**：在一个标签窗口里打开多份 Markdown 和文本，下次启动继续上次会话。
 - **沿文档目录跳转**：相对或绝对的本地 Markdown / 文本链接直接打开或激活标签，不会离开当前预览。
@@ -35,6 +38,7 @@ AI 编程工具现在会生成大量 Markdown：`README.md`、`plan.md`、任务
 
 - 把 Claude Code / Codex / Cursor 生成的计划、任务笔记和 README 放进同一组标签，不必打开完整 IDE。
 - 重启后恢复原来的标签顺序和活动文档；后台文件只在点击时从磁盘加载。
+- 用侧边目录在长计划、长变更记录里快速定位章节，不必一路滚动。
 - 直接在 MD Preview 里完成小幅源码修改，同时保留外部编辑器写盘后的实时刷新。
 - macOS 上从 Finder 新建 Markdown 后直接开始编辑，不再为了一个空文件先打开 VS Code。
 - 需要干净 PDF 时，直接打印渲染后的预览。
@@ -51,7 +55,7 @@ AI 编程工具现在会生成大量 Markdown：`README.md`、`plan.md`、任务
 | iOS / iPadOS | [App Store 上的 Local Markdown Preview](https://apps.apple.com/cn/app/local-markdown-preview/id6779451523) | 原生 iPhone / iPad 预览器，可从“文件”和 iOS 分享面板打开 Markdown。 |
 | Android | `MD-Preview-Android.apk` | 原生 Android 预览器，可从文件管理器、微信、企业微信和分享面板打开 Markdown。 |
 
-Android 版本以单独的 mobile release 发布，例如 [mobile-android-v1.0.7](https://github.com/vorojar/md-preview/releases/tag/mobile-android-v1.0.7)。iOS 版本已经在 App Store 上架，名称为 [Local Markdown Preview](https://apps.apple.com/cn/app/local-markdown-preview/id6779451523)。
+Android 版本以单独的 mobile release 发布，例如 [mobile-android-v1.0.9](https://github.com/vorojar/md-preview/releases/tag/mobile-android-v1.0.9)。iOS 版本已经在 App Store 上架，名称为 [Local Markdown Preview](https://apps.apple.com/cn/app/local-markdown-preview/id6779451523)。
 
 也可以从源码构建：
 
@@ -96,11 +100,14 @@ iPhone 和 iPad 上，Local Markdown Preview 可以从“文件”和 iOS 分享
 
 | 功能 | 说明 |
 |---|---|
+| 侧边目录 | 从渲染后的 h1–h4 生成大纲；点击跳转、滚动高亮当前章节；默认展开，可收起、拖拽调宽，状态持久化。 |
 | 桌面标签 | 在一个窗口打开多份 Markdown 或文本；重复路径只激活已有标签。 |
 | 会话恢复 | 重启后恢复标签顺序和活动文档，但不缓存后台文档正文。 |
 | 缺失文件 | 文件移动或删除后保留缺失标签，提供重新定位和关闭操作。 |
 | Finder 工作流 | macOS 上从 Finder 新建 Markdown，并立即在 MD Preview 里编辑。 |
 | 可靠自动保存 | 源码输入停顿片刻即保存；预览、切换标签、关闭标签/窗口或退出前强制写盘，保存失败时保留标签和编辑内容。 |
+| 大文档启动 | 初始页面超过安全阈值时先出轻量首屏，WebView 就绪后再注入完整正文，避开 WebView2 的 2 MB `NavigateToString` 上限。 |
+| 按需图片 | 本地相对图片由自定义协议按需从磁盘提供，并带 `loading="lazy"`；不内联 base64，屏外图片不占渲染器内存。 |
 | 本地文档链接 | 相对或绝对的现有 Markdown / 文本链接会打开或激活标签；无效本地目标不会替换当前预览。 |
 | 头部元信息 | 文档开头的 YAML metadata 保持元信息排版，不再被挤成标题。 |
 | 实时统计 | 标签栏显示非空白字符数与总字符数，源码编辑时同步更新。 |
@@ -119,7 +126,7 @@ iPhone 和 iPad 上，Local Markdown Preview 可以从“文件”和 iOS 分享
 | 图表 | Mermaid fenced code block 只在文档实际使用时本地渲染。 |
 | GitHub Alerts | `[!NOTE]`、`[!TIP]`、`[!IMPORTANT]`、`[!WARNING]`、`[!CAUTION]` blockquote 会渲染成提示块。 |
 | 高亮标记 | `==高亮==` 会渲染成 marked text，适合笔记和 AI 生成文档。 |
-| 暗色模式 | 自动跟随 macOS、Windows、Linux 的系统主题。 |
+| 外观 | 默认跟随系统；macOS 的 View → Theme 可固定为 System、Light 或 Dark。 |
 | GFM 支持 | 表格、任务列表、删除线、heading attributes、标题锚点。 |
 | 外链跳转 | `http`、`https`、`mailto` 链接交给系统浏览器或邮件客户端。 |
 | 窗口恢复 | 下次启动恢复上次位置和大小；断开显示器后自动回到可见屏幕。 |
@@ -151,12 +158,20 @@ MD Preview 先用 `pulldown-cmark` 完成基础 Markdown 解析，再只在需�
 - 40+ 语言离线代码高亮，包含 Delphi / Pascal
 - KaTeX 离线数学公式渲染，并保护公式不被 Markdown 强调语法破坏
 - Mermaid 离线渲染 ```` ```mermaid ```` fenced code block
-- 通过按文件设置 `<base>` 支持相对路径图片
+- 相对路径图片按当前 Markdown 所在目录解析，由自定义协议从磁盘按需提供
 - 支持跳转到相对或绝对路径的本地 Markdown / 文本文档
 - 保持 `---` 或 `...` 包围的 YAML front matter 清晰可读
 - 打印样式自动移除应用工具栏和源码编辑区
 
 普通 Markdown 走轻路径：文档先可见，highlight.js、KaTeX、Mermaid 这类较重的增强逻辑延迟到首屏之后，或只在文档真正需要时加载。
+
+## 性能与内存
+
+- **冷启动**：highlight.js 不进入首屏 HTML，首帧只解析 Markdown；代码着色在首帧之后补上。
+- **大文档**：初始页面超过 1 MiB 时，先用轻量正文完成首屏，WebView 建立后再通过脚本推送完整内容，避开 WebView2 2 MB 的 `NavigateToString` 上限。
+- **图片**：本地图片不再转成 base64 内联进 HTML，而是由 `mdimg` 自定义协议按需读取；所有图片带 `loading="lazy"`，屏外图片不请求、不解码。大尺寸不透明图片会在结果更小时缩到最长边 1920px 并转成 JPEG。
+- **Windows 常驻内存**：WebView2 关闭独立 GPU 进程、把 GPU 工作合入浏览器进程，并把 JavaScript 老生代堆限制为 64 MB；图片较多的文档常驻内存约降低 40 MB。
+- **标签懒加载**：会话恢复只保留标签顺序和活动文档，后台文档正文仍然留在磁盘。
 
 ## 为什么能小
 
@@ -174,6 +189,8 @@ Release profile 使用面向体积的优化、LTO、单 codegen unit、符号裁
 ## 隐私
 
 MD Preview 没有账号、没有 telemetry、没有 analytics。你的 Markdown 文件留在本地磁盘，渲染也在本机完成。桌面应用自身唯一的网络请求是首屏之后的可选更新检测；失败会静默忽略，不影响启动和预览。macOS 更新由 Sparkle 使用应用内置的 EdDSA 公钥校验；Windows 自更新会先校验 GitHub Releases 返回的 SHA-256 digest，再替换当前 exe。
+
+本地图片的自定义协议只服务当前 Markdown 所在目录下的图片文件：父目录越界、缺失文件和非图片扩展名都会被拒绝，并保持原始引用，不会读取目录外的内容。
 
 ## 常见问题
 
@@ -198,6 +215,10 @@ WEBKIT_DISABLE_DMABUF_RENDERER=1 md-preview your-file.md
 ```bash
 WEBKIT_DISABLE_COMPOSITING_MODE=1 md-preview your-file.md
 ```
+
+**超大文档或图片很多的文档仍然异常**
+
+先更新到最新版；大文档首屏和图片按需加载都依赖新版本。如果应用闪退，查看 exe 同目录下的 `md-preview.log`；该目录不可写时会写到配置目录（Windows 为 `%LOCALAPPDATA%\md-preview`，macOS / Linux 为 `~/.config/md-preview`）。日志只记录 panic 位置和原因，方便反馈问题。
 
 **Windows 不能自动设为默认 Markdown 应用**
 
